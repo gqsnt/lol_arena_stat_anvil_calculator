@@ -13,7 +13,8 @@
   - [player_stats.rs](#player_statsrs)
   - [stat.rs](#statrs)
   - [stat_shard.rs](#stat_shardrs)
-
+  - [anvil_stat_analyzer.rs](#anvil_stat_analyzers)
+  - [anvil_stat_calculator.rs](#anvil_stat_calculators)
 
 ## Introduction
 
@@ -26,6 +27,7 @@ The LOL Arena Stat Anvil Calculator is a command-line application that simulates
 - Display current stats and shard roll count.
 - Reset the stats to start over.
 - Interactive menu for user actions.
+- Advanced analysis of rolled stats and their priority selection.
 
 ## Installation
 
@@ -47,14 +49,30 @@ The LOL Arena Stat Anvil Calculator is a command-line application that simulates
 
 ## Usage
 
+The project includes two binaries: `anvil_stat_calculator` and `anvil_stat_analyzer`.
+
+### anvil_stat_calculator
+
+This interactive command-line tool allows users to roll for stat shards, reset stats, and stop the simulation through a menu-based interface.
+
 1. Run the application:
     ```sh
-    cargo run --release
+    cargo run --bin anvil_stat_calculator --release
     ```
 2. Follow the prompts to interact with the simulator:
     - Choose "Roll" to roll for new stat shards.
     - Choose "Reset" to reset the current stats.
     - Choose "Stop" to exit the application.
+
+### anvil_stat_analyzer
+
+This module provides an advanced analysis of rolled stats over multiple rounds, selecting high-priority shards and analyzing the results.
+
+1. Run the application:
+    ```sh
+    cargo run --bin anvil_stat_analyzer --release
+    ```
+2. The application will automatically perform the analysis based on the predefined configuration and display the results.
 
 ## Modules
 
@@ -78,3 +96,10 @@ Defines the `Stat` enumeration, which represents various stats a player can have
 
 Defines the `StatShard` enumeration, which represents different types of stat shards. This module includes methods for generating all variants of stat shards, including the special "Pristine" shard.
 
+### anvil_stat_analyzer.rs
+
+This module provides an advanced analysis of rolled stats over multiple rounds, selecting high-priority shards and analyzing the results.
+
+### anvil_stat_calculator.rs
+
+An interactive command-line tool that allows users to roll for stat shards, reset stats, and stop the simulation through a menu-based interface.
