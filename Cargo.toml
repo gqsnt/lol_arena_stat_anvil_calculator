@@ -3,8 +3,20 @@ name = "lol_stat_shard"
 version = "0.1.0"
 edition = "2021"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[[bin]]
+name = "anvil_stat_calculator"
+test = false
+
+[[bin]]
+name = "anvil_stat_analyzer"
+test = false
 
 [dependencies]
 rand = "0.9.0-alpha.1"
 dialoguer = "0.11.0"
+
+[profile.release]
+lto = "fat"
+opt-level = 3
+codegen-units = 1
+panic = "abort"
