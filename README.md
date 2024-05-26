@@ -31,7 +31,7 @@ The LOL Arena Stat Anvil Calculator is a command-line application that simulates
 
 1. Ensure you have Rust installed on your system. If not, install it from [rust-lang.org](https://www.rust-lang.org/).
 2. Download the project files:
-    - Click [here](<link-to-download>) to download the ZIP file.
+    - Click [here](https://github.com/gqsnt/lol_arena_stat_anvil_calculator/archive/refs/heads/master.zip) to download the ZIP file.
     - Or clone the repository using Git:
     ```sh
     git clone https://github.com/gqsnt/lol_arena_stat_anvil_calculator
