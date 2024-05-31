@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use rand::prelude::{IndexedRandom, SliceRandom};
 use rand::Rng;
+use rand::rngs::ThreadRng;
 
 use crate::stat::Stat;
 use crate::stat_shard::StatShard;
@@ -12,7 +13,6 @@ pub struct PlayerStats {
     pub hash_map: HashMap<Stat, f64>,
     pub used_pristine: bool,
     pub total_shard: u32,
-    rng: rand::rngs::ThreadRng,
 }
 
 impl PlayerStats {
@@ -21,25 +21,24 @@ impl PlayerStats {
             hash_map: HashMap::new(),
             used_pristine: false,
             total_shard: 0,
-            rng: rand::thread_rng(),
         }
     }
 
-    pub fn get_3_choices(&mut self) -> Vec<StatShardPercent> {
+    pub fn get_3_choices(&mut self, rng:&mut ThreadRng) -> Vec<StatShardPercent> {
         let mut shards = StatShard::all_variants(self.total_shard > 10 && !self.used_pristine);
-        shards.shuffle(&mut self.rng);
+        shards.shuffle( rng);
         shards.truncate(3);
         let mut shards_percent = Vec::new();
         for shard in shards {
             let percent = match shard {
                 StatShard::SimpleStat(_) | StatShard::DoubleStat(_, _) => {
-                    self.rng.gen_range(0..=10) as f64 / 10.0
+                    rng.gen_range(0..=10) as f64 / 10.0
                 }
                 StatShard::Faith => {
-                    (self.rng.gen_range(0..=10) as f64 / 10.0) + 1.0
+                    (rng.gen_range(0..=10) as f64 / 10.0) + 1.0
                 }
                 StatShard::Pristine => {
-                    self.rng.gen_range(2..=8) as f64 / 10.0
+                    rng.gen_range(2..=8) as f64 / 10.0
                 }
             };
             shards_percent.push((shard, percent));
@@ -69,7 +68,7 @@ impl PlayerStats {
         *entry += value;
     }
 
-    pub fn insert_shard(&mut self, shard: StatShardPercent) {
+    pub fn insert_shard(&mut self, shard: StatShardPercent, rng: &mut ThreadRng) {
         let (shard, percent) = shard;
         match shard {
             StatShard::SimpleStat(stat) => {
@@ -81,8 +80,8 @@ impl PlayerStats {
             }
             StatShard::Faith => {
                 let all_stats = Stat::all_variants();
-                let stat1 = all_stats.choose(&mut self.rng).unwrap();
-                let  stat2 = all_stats.choose(&mut self.rng).unwrap();
+                let stat1 = all_stats.choose(rng).unwrap();
+                let  stat2 = all_stats.choose(rng).unwrap();
                 self.insert_stat(*stat1, stat1.get_min_max(false).1 * (percent * 1.5));
                 self.insert_stat(*stat2, stat2.get_min_max(false).1 * (percent * 1.5));
             }

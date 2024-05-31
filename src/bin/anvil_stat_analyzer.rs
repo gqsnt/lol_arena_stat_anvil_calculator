@@ -1,11 +1,14 @@
-use lol_stat_shard::player_stats::PlayerStats;
-use lol_stat_shard::trim_float;
-use lol_stat_shard::stat::Stat;
-use lol_stat_shard::stat_shard::StatShard;
 use std::collections::HashMap;
 
+use rayon::prelude::*;
+
+use lol_stat_shard::player_stats::PlayerStats;
+use lol_stat_shard::stat::Stat;
+use lol_stat_shard::stat_shard::StatShard;
+use lol_stat_shard::trim_float;
+
 struct Config {
-    priority_stats: Vec<StatShard>,
+    priority_stats: Vec<(StatShard, f64)>,
     stat_shard_per_round: usize,
     n_round: usize,
 }
@@ -13,59 +16,63 @@ struct Config {
 fn main() {
     let config = Config {
         priority_stats: vec![
-            StatShard::Pristine,
-            StatShard::Faith,
-            StatShard::SimpleStat(Stat::AttackDamage),
-            StatShard::DoubleStat(Stat::AttackSpeed, Stat::AbilityHaste),
-            StatShard::SimpleStat(Stat::AttackSpeed),
-            StatShard::SimpleStat(Stat::MoveSpeed),
-            StatShard::SimpleStat(Stat::CritChance),
-            StatShard::SimpleStat(Stat::AbilityHaste),
-            StatShard::DoubleStat(Stat::AttackDamage, Stat::AbilityPower),
-
-
+            (StatShard::Pristine, 1.0),
+            (StatShard::Faith, 0.8),
+            (StatShard::SimpleStat(Stat::AttackDamage), 0.7),
+            (StatShard::SimpleStat(Stat::AttackSpeed), 0.6),
+            (StatShard::SimpleStat(Stat::MoveSpeed), 0.6),
+            (StatShard::DoubleStat(Stat::AttackSpeed, Stat::AbilityHaste), 0.5),
+            (StatShard::SimpleStat(Stat::CritChance), 0.3),
+            (StatShard::SimpleStat(Stat::AbilityHaste), 0.3),
+            (StatShard::SimpleStat(Stat::Lethality), 0.3),
+            (StatShard::SimpleStat(Stat::Omnivamp), 0.3),
+            (StatShard::DoubleStat(Stat::AttackDamage, Stat::AbilityPower), 0.2),
+            (StatShard::SimpleStat(Stat::Armor), 0.1),
+            (StatShard::SimpleStat(Stat::MagicResist), 0.1),
         ], // Example priorities
         stat_shard_per_round: 14,
-        n_round: 1000,
+        n_round: 1_000_000,
     };
 
-    let mut all_stats = Vec::new();
-    for _ in 0..config.n_round {
+    let all_stats: Vec<_> = (0..config.n_round).into_par_iter().map(|_| {
         let mut stats = PlayerStats::new();
+        let mut rng = rand::thread_rng();
         for _ in 0..config.stat_shard_per_round {
-            let choices = stats.get_3_choices();
+            let choices = stats.get_3_choices(&mut rng);
             let selected_shard = select_high_priority_shard(&choices, &config.priority_stats);
-            stats.insert_shard(selected_shard);
+            stats.insert_shard(selected_shard, &mut rng);
         }
-        all_stats.push(stats);
-    }
+        stats
+    }).collect();
     analyze_results(&all_stats, &config.priority_stats);
 }
 
-fn select_high_priority_shard(choices: &[(StatShard, f64)], priority_stats: &[StatShard]) -> (StatShard, f64) {
-    for priority_shard in priority_stats {
-        for (shard, percent) in choices {
+fn select_high_priority_shard(choices: &[(StatShard, f64)], priority_stats: &[(StatShard, f64)]) -> (StatShard, f64) {
+    let mut best_shard = choices[0];
+    let mut highest_score = 0.0;
+
+    for (shard, percent) in choices {
+        for (priority_shard, weight) in priority_stats {
             if shard == priority_shard {
-                return (*shard, *percent);
+                let score = percent * weight;
+                if score > highest_score {
+                    highest_score = score;
+                    best_shard = (*shard, *percent);
+                }
             }
         }
     }
-    choices[0] // Default to the first choice if no high priority stat found
+    best_shard
 }
 
-fn analyze_results(all_stats: &[PlayerStats], priority_stats: &[StatShard]) {
+fn analyze_results(all_stats: &[PlayerStats], priority_stats: &[(StatShard, f64)]) {
     let mut total_values: HashMap<Stat, f64> = HashMap::new();
     let mut total_gold_value = 0.0;
     for stats in all_stats {
         total_gold_value += stats.calculate_total_gold_value();
-        for shard in priority_stats {
-            match shard {
-                StatShard::SimpleStat(stat) | StatShard::DoubleStat(stat, _) => {
-                    let value = stats.get_stat(*stat);
-                    *total_values.entry(*stat).or_insert(0.0) += value;
-                }
-                _ => {}
-            }
+        for (stat, value) in &stats.hash_map {
+            let entry = total_values.entry(*stat).or_insert(0.0);
+            *entry += value;
         }
     }
 
